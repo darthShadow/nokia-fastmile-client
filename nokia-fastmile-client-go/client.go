@@ -17,6 +17,20 @@ import (
 	"github.com/charmbracelet/log"
 )
 
+// Gateway Configuration Constants
+const (
+	ODU_GATEWAY_IP = "192.168.0.1"
+	ODU_USERNAME   = "admin"
+	ODU_PASSWORD   = "ANKODACF00005930"
+
+	IDU_GATEWAY_IP = "192.168.1.1"
+	IDU_USERNAME   = "admin"
+	IDU_PASSWORD   = "Pass@Airtel-123"
+
+	// IDU Browser-captured encrypted payload
+	IDU_BROWSER_PAYLOAD = "encrypted=1&ct=DiVgETIqDqEOAr6WsF4-kX2yYqyEp1KnZxC5j5__HGCAztvljLzKvNQwuPI25mqrteWc7D63ivOBANHyD6SveoIQc9-9wjfaEhTZzVd-rJlbhE-O5V9kpXdRavvHhBbReCZLmk2wlOPFshOO85dBhPmmi0B0N3maAa6bF9GS-rNRByE4-QP4CODsKa9lEaQ7qmy3aLq43mAtP3hELrulRxnkKbGC0Yk-9VSIftRe0Uw3zyFhyYjNIJnCT3CjsJTH-gSVlxvHwJukztsE0XwfBQ&ck=fewEnnPAQ2ApoDmGZKGuy9mVhU7jozMgIdf3FAfsjjClcqlsOwDJgPp1iR4It-R4tmZOu_OmgKl4Vg1OpK6jgOFMZ-Mh0HDMnb4fL8uOO-rQolJG2tNeYKZvluYj9KM7-rzpz1mKHKaQ9GPS37avrkBNxiYDZityySUR66CBT9Q."
+)
+
 type Client struct {
 	BaseURL     string
 	GatewayIP   string
@@ -80,7 +94,7 @@ func NewClient(gatewayIP string, useHTTPS bool) *Client {
 	baseURL := fmt.Sprintf("%s://%s:443", protocol, gatewayIP)
 
 	gatewayType := "IDU"
-	if gatewayIP == "192.168.0.1" {
+	if gatewayIP == ODU_GATEWAY_IP {
 		gatewayType = "ODU"
 	}
 
@@ -188,8 +202,8 @@ func (c *Client) LoginIDU() error {
 }
 
 func (c *Client) LoginODUWithProgress(showProgress bool, logger *log.Logger) error {
-	username := "admin"
-	password := "ANKODACF00005930"
+	username := ODU_USERNAME
+	password := ODU_PASSWORD
 
 	if showProgress {
 		fmt.Printf("  \033[94mStep 1:\033[0m Initializing Session...\n")
@@ -357,7 +371,7 @@ func (c *Client) LoginIDUWithProgress(showProgress bool, logger *log.Logger) err
 		logger.Info("Processing Authentication", "step", "3")
 	}
 	// Browser-captured encrypted payload for IDU
-	browserPayload := "encrypted=1&ct=DiVgETIqDqEOAr6WsF4-kX2yYqyEp1KnZxC5j5__HGCAztvljLzKvNQwuPI25mqrteWc7D63ivOBANHyD6SveoIQc9-9wjfaEhTZzVd-rJlbhE-O5V9kpXdRavvHhBbReCZLmk2wlOPFshOO85dBhPmmi0B0N3maAa6bF9GS-rNRByE4-QP4CODsKa9lEaQ7qmy3aLq43mAtP3hELrulRxnkKbGC0Yk-9VSIftRe0Uw3zyFhyYjNIJnCT3CjsJTH-gSVlxvHwJukztsE0XwfBQ&ck=fewEnnPAQ2ApoDmGZKGuy9mVhU7jozMgIdf3FAfsjjClcqlsOwDJgPp1iR4It-R4tmZOu_OmgKl4Vg1OpK6jgOFMZ-Mh0HDMnb4fL8uOO-rQolJG2tNeYKZvluYj9KM7-rzpz1mKHKaQ9GPS37avrkBNxiYDZityySUR66CBT9Q."
+	browserPayload := IDU_BROWSER_PAYLOAD
 
 	if showProgress {
 		fmt.Printf("  \033[94mStep 4:\033[0m Submitting Authentication...\n")

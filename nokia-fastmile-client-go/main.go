@@ -55,7 +55,7 @@ func main() {
 	}
 
 	// Try both gateways
-	gateways := []string{"192.168.0.1", "192.168.1.1"}
+	gateways := []string{ODU_GATEWAY_IP, IDU_GATEWAY_IP}
 	var successfulResults []struct {
 		client *Client
 		status *DeviceStatus

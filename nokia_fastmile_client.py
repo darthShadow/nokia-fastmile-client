@@ -9,6 +9,18 @@ from typing import Dict, Optional
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# Gateway Configuration Constants
+ODU_GATEWAY_IP = "192.168.0.1"
+ODU_USERNAME = "admin"
+ODU_PASSWORD = "ANKODACF00005930"
+
+IDU_GATEWAY_IP = "192.168.1.1"
+IDU_USERNAME = "admin"
+IDU_PASSWORD = "Pass@Airtel-123"
+
+# IDU Browser-captured encrypted payload
+IDU_BROWSER_PAYLOAD = "encrypted=1&ct=DiVgETIqDqEOAr6WsF4-kX2yYqyEp1KnZxC5j5__HGCAztvljLzKvNQwuPI25mqrteWc7D63ivOBANHyD6SveoIQc9-9wjfaEhTZzVd-rJlbhE-O5V9kpXdRavvHhBbReCZLmk2wlOPFshOO85dBhPmmi0B0N3maAa6bF9GS-rNRByE4-QP4CODsKa9lEaQ7qmy3aLq43mAtP3hELrulRxnkKbGC0Yk-9VSIftRe0Uw3zyFhyYjNIJnCT3CjsJTH-gSVlxvHwJukztsE0XwfBQ&ck=fewEnnPAQ2ApoDmGZKGuy9mVhU7jozMgIdf3FAfsjjClcqlsOwDJgPp1iR4It-R4tmZOu_OmgKl4Vg1OpK6jgOFMZ-Mh0HDMnb4fL8uOO-rQolJG2tNeYKZvluYj9KM7-rzpz1mKHKaQ9GPS37avrkBNxiYDZityySUR66CBT9Q."
+
 class Colors:
     GREEN = '\033[92m'; RED = '\033[91m'; BLUE = '\033[94m'
     YELLOW = '\033[93m'; CYAN = '\033[96m'; RESET = '\033[0m'; BOLD = '\033[1m'
@@ -53,7 +65,7 @@ class CryptoJS:
 
 def login_odu():
     """ODU Gateway (192.168.0.1) cryptographic authentication"""
-    router_ip, username, password = "192.168.0.1", "admin", "ANKODACF00005930"
+    router_ip, username, password = ODU_GATEWAY_IP, ODU_USERNAME, ODU_PASSWORD
     
     try:
         # Initialize session and clear existing
@@ -117,7 +129,7 @@ def login_odu():
 
 def login_idu():
     """IDU Gateway (192.168.1.1) browser payload authentication"""
-    router_ip, username, password = "192.168.1.1", "admin", "Pass@Airtel-123"
+    router_ip, username, password = IDU_GATEWAY_IP, IDU_USERNAME, IDU_PASSWORD
     
     try:
         print(f"  {Colors.BLUE}Step 1:{Colors.RESET} Initializing session...")
@@ -143,7 +155,7 @@ def login_idu():
         
         print(f"  {Colors.BLUE}Step 3:{Colors.RESET} Processing authentication...")
         # Browser-captured encrypted payload
-        payload = "encrypted=1&ct=DiVgETIqDqEOAr6WsF4-kX2yYqyEp1KnZxC5j5__HGCAztvljLzKvNQwuPI25mqrteWc7D63ivOBANHyD6SveoIQc9-9wjfaEhTZzVd-rJlbhE-O5V9kpXdRavvHhBbReCZLmk2wlOPFshOO85dBhPmmi0B0N3maAa6bF9GS-rNRByE4-QP4CODsKa9lEaQ7qmy3aLq43mAtP3hELrulRxnkKbGC0Yk-9VSIftRe0Uw3zyFhyYjNIJnCT3CjsJTH-gSVlxvHwJukztsE0XwfBQ&ck=fewEnnPAQ2ApoDmGZKGuy9mVhU7jozMgIdf3FAfsjjClcqlsOwDJgPp1iR4It-R4tmZOu_OmgKl4Vg1OpK6jgOFMZ-Mh0HDMnb4fL8uOO-rQolJG2tNeYKZvluYj9KM7-rzpz1mKHKaQ9GPS37avrkBNxiYDZityySUR66CBT9Q."
+        payload = IDU_BROWSER_PAYLOAD
         
         print(f"  {Colors.BLUE}Step 4:{Colors.RESET} Submitting authentication...")
         resp = sess.post(f"https://{router_ip}:443/login_web_app.cgi", data=payload, verify=False, timeout=30)
@@ -246,7 +258,7 @@ def login_both_gateways():
     print("━" * 40)
     
     results = []
-    gateways = [('ODU', '192.168.0.1', login_odu), ('IDU', '192.168.1.1', login_idu)]
+    gateways = [('ODU', ODU_GATEWAY_IP, login_odu), ('IDU', IDU_GATEWAY_IP, login_idu)]
     
     for gateway_type, ip, login_func in gateways:
         print(f"\n{Colors.BLUE}🔍 Connecting to {gateway_type} Gateway at {ip}...{Colors.RESET}")
