@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """Nokia FastMile 5G Gateway Client - Complete authentication and monitoring tool"""
 
-import sys, json, requests, urllib3, re
+import json
+import re
+import sys
+
+import requests
+import urllib3
 from base64 import b64encode
 from hashlib import sha256 as sha256hash
 from random import randbytes
@@ -21,14 +26,23 @@ IDU_PASSWORD = "Pass@Airtel-123"
 # IDU Browser-captured encrypted payload
 IDU_BROWSER_PAYLOAD = "encrypted=1&ct=DiVgETIqDqEOAr6WsF4-kX2yYqyEp1KnZxC5j5__HGCAztvljLzKvNQwuPI25mqrteWc7D63ivOBANHyD6SveoIQc9-9wjfaEhTZzVd-rJlbhE-O5V9kpXdRavvHhBbReCZLmk2wlOPFshOO85dBhPmmi0B0N3maAa6bF9GS-rNRByE4-QP4CODsKa9lEaQ7qmy3aLq43mAtP3hELrulRxnkKbGC0Yk-9VSIftRe0Uw3zyFhyYjNIJnCT3CjsJTH-gSVlxvHwJukztsE0XwfBQ&ck=fewEnnPAQ2ApoDmGZKGuy9mVhU7jozMgIdf3FAfsjjClcqlsOwDJgPp1iR4It-R4tmZOu_OmgKl4Vg1OpK6jgOFMZ-Mh0HDMnb4fL8uOO-rQolJG2tNeYKZvluYj9KM7-rzpz1mKHKaQ9GPS37avrkBNxiYDZityySUR66CBT9Q."
 
+
+
 class Colors:
-    GREEN = '\033[92m'; RED = '\033[91m'; BLUE = '\033[94m'
-    YELLOW = '\033[93m'; CYAN = '\033[96m'; RESET = '\033[0m'; BOLD = '\033[1m'
-    
+    GREEN = '\033[92m'
+    RED = '\033[91m'
+    BLUE = '\033[94m'
+    YELLOW = '\033[93m'
+    CYAN = '\033[96m'
+    RESET = '\033[0m'
+    BOLD = '\033[1m'
+
     @staticmethod
     def disable():
-        for attr in ['GREEN', 'RED', 'BLUE', 'YELLOW', 'CYAN', 'RESET', 'BOLD']:
+        attrs = ['GREEN', 'RED', 'BLUE', 'YELLOW', 'CYAN', 'RESET', 'BOLD']
+        for attr in attrs:
             setattr(Colors, attr, '')
+
 
 if not sys.stdout.isatty():
     Colors.disable()
@@ -44,7 +58,7 @@ class CryptoJS:
     def sha256(cls, val1: str, val2: str) -> str:
         """SHA256 hash two values with colon separator, return base64"""
         return b64encode(sha256hash((val1 + ":" + val2).encode()).digest()).decode()
-    
+
     @classmethod
     def sha256_single(cls, val: str) -> str:
         return sha256hash(val.encode()).hexdigest()
@@ -52,11 +66,11 @@ class CryptoJS:
     @classmethod
     def sha256url(cls, val1: str, val2: str) -> str:
         return cls.base64url_escape(cls.sha256(val1, val2))
-    
+
     @classmethod
     def bytes_to_base64(cls, byt: bytes) -> str:
         return b64encode(byt).decode()
-    
+
     @classmethod
     def random_words(cls, num_words: int) -> str:
         """Generate random base64 (num_words * 32 bits)"""
@@ -66,41 +80,41 @@ class CryptoJS:
 def login_odu():
     """ODU Gateway (192.168.0.1) cryptographic authentication"""
     router_ip, username, password = ODU_GATEWAY_IP, ODU_USERNAME, ODU_PASSWORD
-    
+
     try:
         # Initialize session and clear existing
         print(f"  {Colors.BLUE}Step 1:{Colors.RESET} Initializing session...")
         print(f"  {Colors.GREEN}✓{Colors.RESET} Session initialized")
-        
+
         print(f"  {Colors.BLUE}Step 2:{Colors.RESET} Clearing existing sessions...")
-        
+
         # Get nonce and crypto parameters
         print(f"  {Colors.BLUE}Step 3:{Colors.RESET} Getting nonce...")
         resp = requests.get(f"https://{router_ip}:443/login_web_app.cgi?nonce", verify=False, timeout=10)
         nonce_json = json.loads(resp.text)
         print(f"  {Colors.GREEN}✓{Colors.RESET} Nonce: {Colors.CYAN}{nonce_json['nonce'][:20]}...{Colors.RESET}")
-        
+
         # Get salt using username hash
         print(f"  {Colors.BLUE}Step 4:{Colors.RESET} Getting salt...")
         userhash = CryptoJS.sha256url(username, nonce_json['nonce'])
-        resp = requests.post(f"https://{router_ip}:443/login_web_app.cgi?salt", 
-                           data={'userhash': userhash, 'nonce': CryptoJS.base64url_escape(nonce_json['nonce'])}, 
+        resp = requests.post(f"https://{router_ip}:443/login_web_app.cgi?salt",
+                           data={'userhash': userhash, 'nonce': CryptoJS.base64url_escape(nonce_json['nonce'])},
                            verify=False, timeout=10)
         salt = json.loads(resp.text)['alati']
         print(f"  {Colors.GREEN}✓{Colors.RESET} Salt: {Colors.CYAN}{salt[:20]}...{Colors.RESET}")
-        
+
         # Process password with salt and iterations
         print(f"  {Colors.BLUE}Step 5:{Colors.RESET} Processing authentication...")
         pass_hash = salt + password
         if nonce_json['iterations'] >= 1:
             pass_hash = CryptoJS.sha256_single(pass_hash)
-        
+
         # Generate authentication response
         login_hash = CryptoJS.sha256(username, pass_hash.lower())
         response = CryptoJS.sha256url(login_hash, nonce_json['nonce'])
         random_key_hash = CryptoJS.sha256url(nonce_json['randomKey'], nonce_json['nonce'])
         enckey, enciv = CryptoJS.random_words(4), CryptoJS.random_words(4)
-        
+
         # Submit authentication
         print(f"  {Colors.BLUE}Step 6:{Colors.RESET} Submitting authentication...")
         sess = requests.Session()
@@ -110,27 +124,27 @@ def login_odu():
             'Content-Type': 'application/x-www-form-urlencoded',
             'Origin': f'https://{router_ip}', 'Referer': f'https://{router_ip}/'
         })
-        
+
         auth_data = {
             'userhash': userhash, 'RandomKeyhash': random_key_hash, 'response': response,
             'nonce': CryptoJS.base64url_escape(nonce_json['nonce']),
             'enckey': CryptoJS.base64url_escape(enckey), 'enciv': CryptoJS.base64url_escape(enciv)
         }
-        
+
         resp = sess.post(f"https://{router_ip}:443/login_web_app.cgi", data=auth_data, verify=False, timeout=30)
         return json.loads(resp.text), sess
-        
+
     except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, json.JSONDecodeError, Exception) as e:
-        error_msg = {requests.exceptions.Timeout: "Connection timeout", 
-                    requests.exceptions.ConnectionError: "Unable to connect", 
+        error_msg = {requests.exceptions.Timeout: "Connection timeout",
+                    requests.exceptions.ConnectionError: "Unable to connect",
                     json.JSONDecodeError: "Invalid response"}.get(type(e), str(e))
         return {"result": -1, "error": error_msg}, None
 
 
 def login_idu():
     """IDU Gateway (192.168.1.1) browser payload authentication"""
-    router_ip, username, password = IDU_GATEWAY_IP, IDU_USERNAME, IDU_PASSWORD
-    
+    router_ip = IDU_GATEWAY_IP
+
     try:
         print(f"  {Colors.BLUE}Step 1:{Colors.RESET} Initializing session...")
         sess = requests.Session()
@@ -140,37 +154,37 @@ def login_idu():
             'Content-Type': 'application/x-www-form-urlencoded', 'Cache-Control': 'no-cache',
             'Origin': f'https://{router_ip}', 'Referer': f'https://{router_ip}/'
         })
-        
+
         # Initialize session and logout any existing
         resp = sess.get(f"https://{router_ip}:443/", timeout=5, verify=False)
         if resp.status_code != 200:
             return {"result": -1, "error": f"Init failed: HTTP {resp.status_code}"}, None
         print(f"  {Colors.GREEN}✓{Colors.RESET} Session initialized")
-        
+
         print(f"  {Colors.BLUE}Step 2:{Colors.RESET} Clearing existing sessions...")
         try:
             sess.get(f"https://{router_ip}:443/login_web_app.cgi?out", timeout=10, verify=False)
-        except:
+        except Exception:
             pass
-        
+
         print(f"  {Colors.BLUE}Step 3:{Colors.RESET} Processing authentication...")
         # Browser-captured encrypted payload
         payload = IDU_BROWSER_PAYLOAD
-        
+
         print(f"  {Colors.BLUE}Step 4:{Colors.RESET} Submitting authentication...")
         resp = sess.post(f"https://{router_ip}:443/login_web_app.cgi", data=payload, verify=False, timeout=30)
-        
+
         if resp.status_code not in [200, 299]:
             return {"result": -1, "error": f"HTTP {resp.status_code}"}, None
-        
+
         try:
             return json.loads(resp.text, strict=False), sess
         except json.JSONDecodeError:
             print(f"  {Colors.YELLOW}💡 Payload may be expired{Colors.RESET}")
             return {"result": -1, "error": "Invalid response", "response": resp.text[:100]}, None
-    
+
     except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, Exception) as e:
-        error_msg = {requests.exceptions.Timeout: "Connection timeout", 
+        error_msg = {requests.exceptions.Timeout: "Connection timeout",
                     requests.exceptions.ConnectionError: "Unable to connect"}.get(type(e), str(e))
         return {"result": -1, "error": error_msg}, None
 
@@ -221,7 +235,7 @@ def print_status_box(status: Dict, gateway_type: str, router_ip: str):
     version = status.get('SoftwareVersion', 'N/A')
     if len(version) > width - 15:
         version = version[:width-18] + "..."
-    
+
     print(f"║ {Colors.RESET}{'Model:':<12} {Colors.YELLOW}{model:<{width-15}}{Colors.CYAN} ║")
     print(f"║ {Colors.RESET}{'Serial:':<12} {Colors.YELLOW}{serial:<{width-15}}{Colors.CYAN} ║")
     print(f"║ {Colors.RESET}{'Version:':<12} {Colors.YELLOW}{version:<{width-15}}{Colors.CYAN} ║")
@@ -230,7 +244,7 @@ def print_status_box(status: Dict, gateway_type: str, router_ip: str):
 
     # Performance metrics with bars
     bar_width = 25
-    
+
     cpu_usage = status.get('cpu_usageinfo', {}).get('CPUUsage', 0)
     cpu_filled = int(cpu_usage / 100 * bar_width)
     cpu_color = Colors.GREEN if cpu_usage < 50 else Colors.YELLOW if cpu_usage < 80 else Colors.RED
@@ -256,20 +270,20 @@ def login_both_gateways():
     """Authenticate to both gateways and display status"""
     print(f"\n{Colors.BOLD}🌐 Nokia FastMile 5G Gateway Client{Colors.RESET}")
     print("━" * 40)
-    
+
     results = []
     gateways = [('ODU', ODU_GATEWAY_IP, login_odu), ('IDU', IDU_GATEWAY_IP, login_idu)]
-    
+
     for gateway_type, ip, login_func in gateways:
         print(f"\n{Colors.BLUE}🔍 Connecting to {gateway_type} Gateway at {ip}...{Colors.RESET}")
         result, sess = login_func()
-        
+
         if result.get('result') == 0:
             print(f"\n{Colors.GREEN}✅ {gateway_type} Authentication successful!{Colors.RESET}")
             print(f"{Colors.BLUE}🔑 Session: {Colors.CYAN}{result.get('sid', 'N/A')}{Colors.RESET}")
             print(f"{Colors.BLUE}🎫 Token: {Colors.CYAN}{result.get('token', 'N/A')}{Colors.RESET}")
             results.append((gateway_type, ip, result, sess))
-            
+
             status = get_device_status(sess, ip)
             if status:
                 print_status_box(status, gateway_type, ip)
@@ -278,27 +292,27 @@ def login_both_gateways():
         else:
             print(f"\n{Colors.RED}❌ {gateway_type} Authentication failed{Colors.RESET}")
             print(f"{Colors.RED}   Error: {Colors.YELLOW}{result.get('error', 'Unknown')}{Colors.RESET}")
-    
+
     # Cleanup sessions
     for _, ip, _, sess in results:
         if sess:
             try:
                 sess.get(f"https://{ip}:443/login_web_app.cgi?out", timeout=10, verify=False)
-            except:
+            except Exception:
                 pass
-    
+
     return results
 
 
 if __name__ == "__main__":
     try:
         results = login_both_gateways()
-        
+
         print(f"\n{Colors.BOLD}📊 Summary{Colors.RESET}")
         print("━" * 20)
-        
+
         successful = [r for r in results if r[2].get('result') == 0]
-        
+
         if successful:
             print(f"{Colors.GREEN}✅ Successful: {len(successful)}/2{Colors.RESET}")
             for gateway_type, ip, result, _ in successful:
@@ -308,7 +322,7 @@ if __name__ == "__main__":
         else:
             print(f"{Colors.RED}❌ No successful connections{Colors.RESET}")
         print()
-            
+
     except KeyboardInterrupt:
         print(f"\n{Colors.YELLOW}Operation cancelled{Colors.RESET}")
     except Exception as e:
